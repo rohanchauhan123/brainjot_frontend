@@ -73,7 +73,7 @@ export default function LoginScreen({ onLoginSuccess }) {
       if (r.ok) {
         onLoginSuccess(r.user);
       } else {
-        setError(toErrString(r.error) || 'Google Authentication failed. Please try again.');
+        setError(toErrString(r.error || r) || 'Google Authentication failed. Please try again.');
       }
     } catch (err) {
       setError('An error occurred during Google sign-in.');
@@ -123,7 +123,7 @@ export default function LoginScreen({ onLoginSuccess }) {
         setOtpSent(true);
         setInfo(r.message || 'OTP sent successfully to your email.');
       } else {
-        setError(r.error || 'Failed to send OTP.');
+        setError(toErrString(r.error || r) || 'Failed to send OTP.');
       }
     } catch {
       setError('An error occurred. Please try again.');
@@ -154,7 +154,7 @@ export default function LoginScreen({ onLoginSuccess }) {
             onLoginSuccess(r.user);
           }
         } else {
-          setError(r.error || 'Invalid OTP code.');
+          setError(toErrString(r.error || r) || 'Invalid OTP code.');
         }
       } else {
         // Standard Password Login / Registration
@@ -168,7 +168,7 @@ export default function LoginScreen({ onLoginSuccess }) {
         if (r.ok) {
           onLoginSuccess(r.user);
         } else {
-          setError(r.error || 'Something went wrong. Please try again.');
+          setError(toErrString(r.error || r) || 'Something went wrong. Please try again.');
         }
       }
     } finally {
