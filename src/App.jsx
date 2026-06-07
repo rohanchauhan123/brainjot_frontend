@@ -164,7 +164,7 @@ export default function App() {
       socketRef.current = null;
       return;
     }
-    const socket = socketIO({ withCredentials: true, transports: ['websocket'] });
+    const socket = socketIO(import.meta.env.VITE_API_URL || undefined, { withCredentials: true, transports: ['websocket'] });
     socketRef.current = socket;
     socket.on('connect', () => {
       if (currentRoomRef.current) socket.emit('join_room', currentRoomRef.current);
