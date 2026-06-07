@@ -47,17 +47,33 @@ export default function LoginScreen({ onLoginSuccess }) {
     return () => clearTimeout(debounceRef.current);
   }, [username, mode, requiresRegDetails]);
 
+  // Helper to safely extract a string from any error value
+  const toErrString = (val) => {
+    if (!val) return '';
+    if (typeof val === 'string') return val;
+    if (typeof val === 'object') {
+      if (val.message) return String(val.message);
+      if (val.error) return String(val.error);
+      try { return JSON.stringify(val); } catch { return 'Unknown error'; }
+    }
+    return String(val);
+  };
+
   // Google authentication credential handler
   const handleGoogleCredentialResponse = async (response) => {
     setError('');
     setInfo('');
+    if (!response?.credential) {
+      setError('Google sign-in was cancelled or failed. Please try again.');
+      return;
+    }
     setLoading(true);
     try {
       const r = await api('google_auth', { credential: response.credential });
       if (r.ok) {
         onLoginSuccess(r.user);
       } else {
-        setError(r.error || 'Google Authentication failed. Please try again.');
+        setError(toErrString(r.error) || 'Google Authentication failed. Please try again.');
       }
     } catch (err) {
       setError('An error occurred during Google sign-in.');
@@ -66,23 +82,34 @@ export default function LoginScreen({ onLoginSuccess }) {
     }
   };
 
-  // Render Google Button on component mount / state updates
+  // Keep a stable ref to the callback so google.accounts.id.initialize doesn't get stale
+  const googleCallbackRef = useRef(handleGoogleCredentialResponse);
+  useEffect(() => { googleCallbackRef.current = handleGoogleCredentialResponse; });
+
+  // Render Google Button — only once when the ref is ready, re-render on mode change
   useEffect(() => {
-    /* global google */
-    if (typeof google !== 'undefined' && google.accounts && googleBtnRef.current) {
-      try {
-        google.accounts.id.initialize({
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'dummy_client_id.apps.googleusercontent.com',
-          callback: handleGoogleCredentialResponse,
-        });
-        google.accounts.id.renderButton(
-          googleBtnRef.current,
-          { theme: 'filled_dark', size: 'large', width: '100%', text: mode === 'login' ? 'signin_with' : 'signup_with' }
-        );
-      } catch (err) {
-        console.error('Error rendering Google Sign-In button', err);
+    const tryRender = () => {
+      /* global google */
+      if (typeof google !== 'undefined' && google.accounts && googleBtnRef.current) {
+        try {
+          google.accounts.id.initialize({
+            client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
+            callback: (response) => googleCallbackRef.current(response),
+            ux_mode: 'popup',
+          });
+          google.accounts.id.renderButton(
+            googleBtnRef.current,
+            { theme: 'filled_dark', size: 'large', width: '100%', text: mode === 'login' ? 'signin_with' : 'signup_with' }
+          );
+        } catch (err) {
+          console.error('Error rendering Google Sign-In button', err);
+        }
+      } else {
+        // GIS script might still be loading — retry after 500ms
+        setTimeout(tryRender, 500);
       }
-    }
+    };
+    tryRender();
   }, [mode, useOtp]); // Re-render when switching layouts
 
   const sendOtpCode = async () => {
