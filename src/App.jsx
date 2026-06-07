@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { io as socketIO } from 'socket.io-client';
 import { AnimatePresence, motion } from 'framer-motion';
-import { api } from './api';
+import { api, getSanitizedApiUrl } from './api';
 import LoginScreen from './components/LoginScreen';
 import Sidebar from './components/Sidebar';
 import DashboardView from './views/DashboardView';
@@ -164,7 +164,7 @@ export default function App() {
       socketRef.current = null;
       return;
     }
-    const socket = socketIO(import.meta.env.VITE_API_URL || undefined, { withCredentials: true, transports: ['websocket'] });
+    const socket = socketIO(getSanitizedApiUrl() || undefined, { withCredentials: true, transports: ['websocket'] });
     socketRef.current = socket;
     socket.on('connect', () => {
       if (currentRoomRef.current) socket.emit('join_room', currentRoomRef.current);

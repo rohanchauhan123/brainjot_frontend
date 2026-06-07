@@ -3,8 +3,23 @@ import axios from 'axios';
 // In production (Vercel), VITE_API_URL must be your Railway backend URL
 // e.g. https://your-backend.up.railway.app
 // In development, the Vite proxy handles /api → localhost:3001
+export function getSanitizedApiUrl() {
+  let url = import.meta.env.VITE_API_URL || '';
+  if (url) {
+    if (!/^https?:\/\//i.test(url)) {
+      url = `https://${url}`;
+    }
+    if (url.endsWith('/')) {
+      url = url.slice(0, -1);
+    }
+  }
+  return url;
+}
+
+const cleanApiUrl = getSanitizedApiUrl();
+
 const apiInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api',
+  baseURL: cleanApiUrl ? `${cleanApiUrl}/api` : '/api',
   withCredentials: true,
 });
 
@@ -31,7 +46,8 @@ export async function api(action, body = null, method = 'POST', extraQuery = '')
 
 export async function apiForm(action, fd) {
   try {
-    const baseUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api';
+    const cleanApiUrl = getSanitizedApiUrl();
+    const baseUrl = cleanApiUrl ? `${cleanApiUrl}/api` : '/api';
     if (import.meta.env.DEV) console.log(`[UPLOAD] ${action}`, [...fd.entries()].map(([k, v]) => `${k}=${v instanceof File ? v.name + '/' + v.type + '/' + v.size : v}`));
     const res = await fetch(`${baseUrl}?action=${action}`, {
       method: 'POST',
